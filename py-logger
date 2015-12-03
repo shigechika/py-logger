@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-# send message to syslog over 1024 bytes
-__version__ = '$Id: py-logger 275 2015-12-02 09:39:24Z shige $'
-
+# py-logger - YANG logger supports over 1024 bytes message.
+__version__ = '2015-12-03'
 from optparse import OptionParser
 import sys
 import syslog
@@ -41,41 +40,63 @@ facilities = {
     }
 
 if __name__ == '__main__':
-    p = OptionParser(version="%s" %__version__)
-    p.add_option('-d', '--debug', action='store_true', default=False,
-                 help="for debug")
-    p.add_option('-f', '--facility', action='store', default="USER",
+    usage = "%prog [options] [message ...]"
+    version = "%prog " + __version__
+    p = OptionParser(usage=usage,
+                     version=version)
+    p.add_option('--debug', action='store_true', default=False,
+                 help="for debug, debug messages output to stderr.")
+    p.add_option('--facility', action='store', default="USER",
                  metavar="FACILITY", 
                  help="KERN, USER, MAIL, DAEMON, AUTH, LPR, NEWS, UUCP, CRON, LOCAL0 - LOCAL7. default %default")
-    p.add_option('-p', '--priority', action='store', default="INFO",
+    p.add_option('--priority', action='store', default="INFO",
                  metavar="PRIORITY",
                  help="EMERG, ALERT, CRIT, ERR, WARNING, NOTICE, INFO, DEBUG. default %default")
+    p.add_option('-s', '--stderr', action='store_true', default=False,
+                 help="Log the message to standard error, as well as the system log.")
+    p.add_option('-t', '--tag', action='store',
+                 metavar="TAG",
+                 help="Mark every line in the log with the specified TAG.")
     opts, args = p.parse_args()
 
-if opts.facility in facilities :
-    myfacility = facilities[ opts.facility ]
-else :
-   print >> sys.stderr, "Facility Error :", opts.facility
-   exit(1)
+    if args :
+         myargs = args
+    else :
+        myargs = sys.stdin
+    
+    if opts.facility in facilities :
+        myfacility = facilities[ opts.facility ]
+    else :
+       print >> sys.stderr, "Facility Error :", opts.facility
+       exit(1)
 
-if opts.debug :
-    print >> sys.stderr, "Facility=", opts.facility, "(", str(myfacility) , ")"
+    if opts.debug :
+        print >> sys.stderr, "Facility :", opts.facility, "(", str(myfacility) , ")"
 
-if opts.priority in priorities :
-    mypriority = priorities[ opts.priority ]
-else :
-    print >> sys.stderr, "Priority Error :", opts.priority
-    exit(1)
+    if opts.priority in priorities :
+        mypriority = priorities[ opts.priority ]
+    else :
+        print >> sys.stderr, "Priority Error :", opts.priority
+        exit(1)
 
-if opts.debug :
-    print >> sys.stderr, "Priority=", opts.priority, "(", str(mypriority), ")"
+    if opts.debug :
+        print >> sys.stderr, "Priority :", opts.priority, "(", str(mypriority), ")"
 
-syslog.openlog(__file__,
-               logoption=syslog.LOG_PID|syslog.LOG_NDELAY,
-               facility=myfacility)
+    if sys.version_info > ( 2, 4, 3) :
+        syslog.openlog(__file__,
+                       logoption=syslog.LOG_PID|syslog.LOG_NDELAY,
+                       facility=myfacility)
+    else :
+        syslog.openlog(__file__,
+                       syslog.LOG_PID|syslog.LOG_NDELAY,
+                       myfacility)
 
-for message in sys.stdin:
-    syslog.syslog(mypriority, message)
+    for message in myargs:
+        if opts.tag :
+            message = opts.tag + ": " + message
+        syslog.syslog(mypriority, message)
+        if opts.debug or opts.stderr :
+            print >> sys.stderr, message
 
-syslog.closelog()
-exit(0)
+    syslog.closelog()
+    exit(0)

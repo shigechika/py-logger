@@ -1,2 +1,6 @@
 # py-logger
-YANG logger, py-logger can send over 1024 bytes message.
+
+YANG logger features:
+ - Supports over 1024 bytes message.
+ - Usefull like a logger.
+ - written in python.
