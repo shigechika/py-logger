@@ -3,6 +3,7 @@
 from optparse import OptionParser
 import sys
 import syslog
+import re
 
 priorities = {
     "EMERG" 	: syslog.LOG_EMERG,	# system is unusable
@@ -53,7 +54,7 @@ if __name__ == '__main__':
                  help="EMERG, ALERT, CRIT, ERR, WARNING, NOTICE, INFO, DEBUG. default %default")
     p.add_option('-p', action='store',
                  metavar="FACILITY.PRIORITY",
-                 help="Enter the message with the specified priority. The priority may be as a ``FACILITY.PRIORITY'' pair. For example, ``-p LOCAL3.INFO'' logs the message(s) as INFORMATIONAL priority in the LOCAL3 facility.")
+                 help="Enter the message with the specified priority. The priority may be specified numerically or as a ``FACILITY.PRIORITY'' pair. For example, ``-p LOCAL3.INFO'' logs the message(s) as INFORMATIONAL priority in the LOCAL3 facility.")
     p.add_option('-t', '--tag', action='store',
                  metavar="TAG",
                  help="Mark every line in the log with the specified TAG.")
@@ -64,6 +65,9 @@ if __name__ == '__main__':
             p.error("-p and ( --facility or --priority) are mutually exclusive")
         else:
             opts.facility, opts.priority = opts.p.split('.')
+            if opts.debug :
+                print >> sys.stderr, "Facility :", opts.facility
+                print >> sys.stderr, "Priority :", opts.priority
     
     if args :
          myargs = args
@@ -73,8 +77,11 @@ if __name__ == '__main__':
     if opts.facility in facilities :
         myfacility = facilities[ opts.facility ]
     else :
-       print >> sys.stderr, "Facility Error :", opts.facility
-       exit(1)
+        if re.match("\d+", opts.facility) :
+            myfacility = int( opts.facility )
+        else :
+            print >> sys.stderr, "Facility Error :", opts.facility
+            exit(1)
 
     if opts.debug :
         print >> sys.stderr, "Facility :", opts.facility, "(", str(myfacility) , ")"
@@ -82,8 +89,11 @@ if __name__ == '__main__':
     if opts.priority in priorities :
         mypriority = priorities[ opts.priority ]
     else :
-        print >> sys.stderr, "Priority Error :", opts.priority
-        exit(1)
+        if re.match("\d+", opts.priority) :
+            mypriority = int( opts.priority )
+        else :
+            print >> sys.stderr, "Priority Error :", opts.priority
+            exit(1)
 
     if opts.debug :
         print >> sys.stderr, "Priority :", opts.priority, "(", str(mypriority), ")"
